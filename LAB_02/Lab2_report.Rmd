@@ -1,0 +1,472 @@
+---
+title: 'BIOMEDICAL SENSORS AND SIGNAL PROCESSING - LAB Quiz 2'
+author: "Marco Russo"
+date: "`r format(Sys.Date(), '%B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+  pdf_document: 
+    toc: true
+    toc_depth: 4
+    number_sections: true
+    fig_width: 7
+    fig_height: 5
+    fig_caption: true
+    keep_tex: false
+    latex_engine: xelatex
+header-includes:
+- \usepackage{xcolor}
+- \usepackage{framed}
+- \usepackage{listings}
+- \usepackage{fancyhdr}
+- \usepackage{geometry}
+- \usepackage{caption}
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{graphicx}
+- \geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+- \pagestyle{fancy}
+- \fancyhead[L]{PEC1 - Estadística Descriptiva}
+- \fancyhead[R]{Marco Russo}
+- \fancyfoot[C]{\thepage}
+- \renewcommand{\headrulewidth}{0.4pt}
+- \renewcommand{\footrulewidth}{0.4pt}
+params:
+  author: MarcusRB
+  email: marco.russo@estudiants.urv.cat
+  github: https://github.com/marcusRB/urv-biomedical-sensors-and-signal-processing
+  linkedin: https://www.linkedin.com/in/marcusrb/
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+\newpage
+
+## Student's information
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Nombre} & Marco Russo \\
+\hline
+\textbf{Email} & marco.russo@estudiants.urv.cat \\
+\hline
+\textbf{GitHub} & https://github.com/marcusRB/urv-biomedical-sensors-and-signal-processing \\
+\hline
+\textbf{LinkedIn} & https://www.linkedin.com/in/marcusrb/ \\
+\hline
+\textbf{Fecha} & \today \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+
+# 1. Download the template
+
+Download the template script to facilitate the required computations. (DONE)
+
+# 2. Import the data
+
+Download the files from campusvirtual. Import them into R studio. You can either use the GUI or alternatively you can use read.csv (set up the condition header=FALSE)
+
+## Import Files using GUI or read.csv (use help)
+
+```{r}
+data1 <- read.csv("FOTsubject1.csv", header=FALSE)
+data2 <- read.csv("FOTsubject2.csv", header=FALSE)
+```
+
+```{r}
+# Extract columns: V1=time, V2=pressure, V3=flow
+time1 <- data1$V1
+pressure1 <- data1$V2
+flow1 <- data1$V3
+
+time2 <- data2$V1
+pressure2 <- data2$V2
+flow2 <- data2$V3
+```
+
+# 3. Plotting
+
+Plot the excitation signal (pressure) vs time. You can use the base R function plot. Investigate how to properly define the axis labels. Select line type 'line'.
+
+### Select the proper variables to plot the input singal vs time. Fill the blanck denoted by ????
+
+```{r}
+plot(time1, pressure1, type='l', col='red', 
+     xlab='Time (s)', 
+     ylab='Pressure (cmH2O)',  
+     main='Excitation Signal: Pressure vs Time')
+
+# Add grid for better visualization
+grid()
+```
+
+# 4. Plot comparative
+
+Plot the flow signal for both subject’s vs time. To overlay two lines in the same plot you can use the base R function lines. Do you observe any difference in flow for both patients? Which one has a higher flow?
+
+### COmpare in a plot the flow signal for both patients.
+
+```{r}
+plot(time1, flow1, type='l', col='red', 
+     xlab='Time (s)', 
+     ylab='Flow (L/s)',  
+     main='Flow Signal Comparison: Patient 1 (red) vs Patient 2 (blue)')
+lines(time2, flow2, type='l', col='blue')
+legend("topright", legend=c("Patient 1", "Patient 2"), 
+       col=c("red", "blue"), lty=1)
+grid()
+```
+
+# 5.Fourier coefficients compute
+
+Now we are going to compute the Fourier Coefficients for both the input
+and output signals for both subjects. We are going to assume that the
+fundamental period is 1 second. Inspect the input and output signals to
+observe that in fact (except for noise) the signals repeat every second.
+We will use the exponential form of the Fourier series. Therefore, the
+Fourier coefficients are complex numbers, and frequencies run from
+negative values to positive values. We are going to explore the range
+-30 to 30 Hz. Use the provided code to estimate the Fourier
+coefficients. Observe how the integral of the Fourier coefficients is
+computed numerically. Plot the modulus of the Fourier coefficient vs
+frequency in Hz (Explore ‘complex’ in the help line).
+
+What are the frequencies chosen for the excitation of the respiratory
+system? Are the main frequencies the same in the input and output
+signals? Why?
+
+### Calculate the Fourier coefficients input and output
+
+## Initialization
+
+```{r}
+# Initialization 
+ckp1 <- rep(0, times=61)  # Fourier coefficients pressure signal patient 1
+ckp2 <- ckp1              # Fourier coefficients pressure signal patient 2
+ckf1 <- ckp1              # Fourier coefficients flow signal patient 1
+ckf2 <- ckp1              # Fourier coefficients flow signal patient 2
+```
+
+#### We use tt for the time vector
+
+```{r}
+# Use time vector (assuming same for both patients)
+tt <- time1
+```
+
+```{r}
+# Frequency range from -30 to 30 Hz
+kf <- seq(-30, 30)
+kk <- 1
+```
+
+```{r}
+# Calculate Fourier coefficients using exponential form
+for (k in kf) {
+  wk <- 2 * pi * k  # Angular frequency
+  expk <- complex(real=cos(wk*tt), imaginary=-sin(wk*tt))
+  
+  # Calculate Fourier coefficients (integral approximation using mean)
+  ckp1[kk] <- mean(pressure1 * expk)
+  ckp2[kk] <- mean(pressure2 * expk)
+  ckf1[kk] <- mean(flow1 * expk)
+  ckf2[kk] <- mean(flow2 * expk)
+  
+  kk <- kk + 1
+}
+```
+
+```{r}
+# Plot modulus of Fourier coefficients vs Frequency
+plot(kf, Mod(ckp1), type='h', col='red', 
+     xlab='Frequency (Hz)', 
+     ylab='|Fourier Coefficient|',
+     main='Fourier Coefficients Magnitude - Pressure Signal')
+grid()
+```
+
+What are the frequencies chosen for the excitation of the respiratory
+system?
+
+> The respiratory system is excited with a multisinusoid signal
+> containing three frequencies: 5 Hz, 12 Hz, and 19 Hz. These
+> frequencies appear as peaks in both the positive and negative
+> frequency ranges due to the exponential form of the Fourier series.
+
+Are the main frequencies the same in the input and output
+signals? Why?
+
+> Yes, the main frequencies are identical in both input (pressure) and
+> output (flow) signals. This occurs because the respiratory system
+> behaves as a Linear Time-Invariant (LTI) system. In LTI systems,
+> sinusoidal inputs produce sinusoidal outputs at the same frequencies,
+> with only amplitude and phase modifications. The system does not
+> generate new frequency components. This property is fundamental to the
+> FOT technique, as it allows us to calculate the respiratory impedance
+> independently for each excitation frequency.
+
+> Key Concepts to understand
+1. Period vs Frequency Period:
+
+$T_0 = \text{1 second} \rightarrow \text{Signal repeats every second}$
+
+$\text{Fundamental frequency} f_₀ \frac{1}{T_0} = \text{1 Hz}$
+
+> We analyze harmonics: k = -30 to +30 Hz 
+2. Complex Fourier:
+Coefficients Each coefficient c_k is a complex number Magnitude
+
+> Mod(c_k): How strong is this frequency component?
+Phase Arg(c_k): What's the time shift of this component?
+
+> 3. Modulus (Magnitude)
+> Mod(complex_number) \# Returns magnitude/absolute value 
+This tells you the "strength" or "energy" at each frequency
+
+> 4. Negative Frequencies
+> Mathematical artifact of exponential form Physically, positive and
+> negative frequencies represent the same sinusoid We usually report
+> only positive frequencies (5, 12, 19 Hz)
+
+```{r}
+# Identify main frequencies (look for peaks)
+cat("\nMain excitation frequencies (Hz):\n")
+main_freqs <- kf[Mod(ckp1) > max(Mod(ckp1))*0.1]
+print(main_freqs)
+```
+
+# 6. Synthesize the input signals
+
+Select the main coefficients (they should be 6) and synthesize the input
+signals using the Fourier synthesis formula. Compare with the empirical
+one using a plot. Do you expect the new signal to have more or less
+noise than the empirical one? Why?.
+
+### Synthesize signals using main Fourier coefficients
+
+Typically, the main frequencies are around 5, 12, 19 Hz and their
+negatives. We should identify these from the plot above. For this
+example, let's assume main frequencies are -19, -12, -5, 5, 12, 19
+
+```{r}
+ff <- c(-19, -12, -5, 5, 12, 19)
+
+# Find indices for these frequencies
+ii <- kf %in% ff
+
+# Synthesize the pressure signal using only main coefficients
+pressure_synth <- rep(0, length(tt))
+for (idx in which(ii)) {
+  k <- kf[idx]
+  wk <- 2 * pi * k
+  expk_synth <- complex(real=cos(wk*tt), imaginary=sin(wk*tt))
+  pressure_synth <- pressure_synth + Re(ckp1[idx] * expk_synth)
+}
+
+# Compare empirical vs synthesized signal
+plot(tt, pressure1, type='l', col='gray', 
+     xlab='Time (s)', 
+     ylab='Pressure (cmH2O)',
+     main='Empirical (gray) vs Synthesized (red) Pressure Signal')
+lines(tt, pressure_synth, col='red', lwd=2)
+legend("topright", legend=c("Empirical", "Synthesized"), 
+       col=c("gray", "red"), lty=1, lwd=c(1,2))
+grid()
+
+cat("\nThe synthesized signal has LESS noise because we only use the main\n")
+cat("frequency components and filter out high-frequency noise.\n")
+```
+
+# 7. Compute complex Impedance
+
+For these six coefficients compute the complex impedance by dividing the
+Fourier coefficients of the pressure signal by those of the flow signal.
+
+### Compute Complex Impedance and Plot Results
+
+```{r}
+# Calculate respiratory impedance: Z = Pressure / Flow
+# For the selected frequencies only
+Zresp1 <- ckp1[ii] / ckf1[ii]
+Zresp2 <- ckp2[ii] / ckf2[ii]
+
+# Use only positive frequencies for plotting (traditional convention)
+positive_freq_mask <- ff > 0
+ff_positive <- ff[positive_freq_mask]
+Zresp1_pos <- Zresp1[positive_freq_mask]
+Zresp2_pos <- Zresp2[positive_freq_mask]
+
+# Plot REAL part of respiratory impedance (Resistance)
+plot(ff_positive, Re(Zresp1_pos), type='b', col='blue', pch=19,
+     xlab='Frequency (Hz)', 
+     ylab='Resistance (cmH2O·s/L)',
+     main='Real Part of Respiratory Impedance',
+     ylim=c(-6, 6))
+points(ff_positive, Re(Zresp2_pos), type='b', col='red', pch=19)
+legend("topright", legend=c("Patient 1", "Patient 2"), 
+       col=c("blue", "red"), pch=19, lty=1)
+grid()
+
+# Plot IMAGINARY part of respiratory impedance (Reactance)
+plot(ff_positive, Im(Zresp1_pos), type='b', col='blue', pch=19,
+     xlab='Frequency (Hz)', 
+     ylab='Reactance (cmH2O·s/L)',
+     main='Imaginary Part of Respiratory Impedance',
+     ylim=c(-6, 6))
+points(ff_positive, Im(Zresp2_pos), type='b', col='red', pch=19)
+abline(h=0, lty=2, col='gray')
+legend("topright", legend=c("Patient 1", "Patient 2"), 
+       col=c("blue", "red"), pch=19, lty=1)
+grid()
+```
+
+# 8. Final considerations
+
+For the selected frequencies plot the real and imaginary part of the
+complex respiratory impedance. By comparison with the information
+already provided can you guess which subject has COPD and which one is
+healthy?
+
+> From the answer 5, we identified 3 main excitation frequencies, for
+> example: 5 Hz, 12 Hz, 19 Hz 
+> Due to the exponential form symmetry, each frequency appears twice: 
+Positive frequencies: +5, +12, +19 Hz 
+Negative frequencies: -5, -12, -19 Hz
+Total: 6 coefficients
+
+> Mathematical relationship for a real signal (like pressure):
+
+```         
+c_k and c_{-k} are complex conjugates
+c_{-k} = c_k* (the asterisk means complex conjugate)
+```
+
+> They work together to create real sinusoids understanding signal
+> Synthesis the fourier synthesis formula general formula (using all coefficients):
+
+```{r}
+# Initialize synthesized signal
+pressure_synth <- rep(0, length(tt))
+
+# For each main frequency
+for (idx in which(ii)) {  # ii = logical vector for main frequencies
+  k <- kf[idx]            # Get frequency value
+  wk <- 2 * pi * k        # Angular frequency
+  
+  # Complex exponential: e^(j·ω·t)
+  expk_synth <- complex(real=cos(wk*tt), imaginary=sin(wk*tt))
+  
+  # Add this frequency component to the synthesized signal
+  pressure_synth <- pressure_synth + Re(ckp1[idx] * expk_synth)
+}
+```
+
+```{r}
+# Full signal comparison
+plot(tt, pressure1, type='l', col='gray60', lwd=1,
+     xlab='Time (s)', 
+     ylab='Pressure (cmH2O)',
+     main='Signal Synthesis: Empirical (gray) vs Synthesized (red)')
+lines(tt, pressure_synth, col='red', lwd=2)
+legend("topright", 
+       legend=c("Empirical (with noise)", "Synthesized (6 main frequencies)"), 
+       col=c("gray60", "red"), lty=1, lwd=c(1,2))
+grid()
+
+# Zoom in on a small time window to see noise clearly
+time_window <- tt >= 0 & tt <= 2  # First 2 seconds
+plot(tt[time_window], pressure1[time_window], type='l', col='gray60', lwd=1,
+     xlab='Time (s)', 
+     ylab='Pressure (cmH2O)',
+     main='Zoomed View: Noise Comparison (First 2 seconds)')
+lines(tt[time_window], pressure_synth[time_window], col='red', lwd=2)
+legend("topright", 
+       legend=c("Empirical (noisy)", "Synthesized (smooth)"), 
+       col=c("gray60", "red"), lty=1, lwd=c(1,2))
+grid()
+
+# Step 6.4: Quantify the noise
+cat("\n--- STEP 4: Noise Analysis ---\n")
+
+# Calculate the difference (this is the filtered noise)
+noise_estimate <- pressure1 - pressure_synth
+
+# Calculate signal power and noise power
+signal_power <- mean(pressure_synth^2)
+noise_power <- mean(noise_estimate^2)
+snr <- 10 * log10(signal_power / noise_power)
+
+cat(sprintf("Signal Power: %.4f\n", signal_power))
+cat(sprintf("Noise Power: %.4f\n", noise_power))
+cat(sprintf("Signal-to-Noise Ratio (SNR): %.2f dB\n", snr))
+cat(sprintf("Noise RMS: %.4f cmH2O\n", sqrt(noise_power)))
+
+# Plot the extracted noise
+plot(tt[time_window], noise_estimate[time_window], type='l', col='darkred',
+     xlab='Time (s)', 
+     ylab='Difference (cmH2O)',
+     main='Extracted Noise: Empirical - Synthesized')
+abline(h=0, lty=2, col='gray')
+grid()
+```
+
+### DIAGNOSTIC INTERPRETATION
+
+```{r}
+cat("\n========== DIAGNOSTIC ANALYSIS ==========\n")
+cat("\nBased on the impedance plots:\n")
+cat("\nREAL PART (Resistance):\n")
+cat("- Higher resistance, especially at low frequencies → airway obstruction\n")
+cat("- COPD patients show increased resistance\n")
+
+cat("\nIMAGINARY PART (Reactance):\n")
+cat("- Resonance frequency (where reactance crosses zero)\n")
+cat("- Higher resonance frequency → increased tissue stiffness (COPD)\n")
+cat("- COPD patients show resonance at higher frequencies\n")
+
+# Calculate resonance frequency (zero crossing of imaginary part)
+# Simple linear interpolation
+find_resonance <- function(freqs, reactance) {
+  for (i in 1:(length(reactance)-1)) {
+    if (reactance[i] * reactance[i+1] < 0) {
+      # Linear interpolation
+      f_res <- freqs[i] + (freqs[i+1] - freqs[i]) * 
+               (-reactance[i]) / (reactance[i+1] - reactance[i])
+      return(f_res)
+    }
+  }
+  return(NA)
+}
+
+res_freq1 <- find_resonance(ff_positive, Im(Zresp1_pos))
+res_freq2 <- find_resonance(ff_positive, Im(Zresp2_pos))
+
+cat("\nResonance Frequencies:\n")
+cat(sprintf("Patient 1: %.2f Hz\n", res_freq1))
+cat(sprintf("Patient 2: %.2f Hz\n", res_freq2))
+
+cat("\n========== CONCLUSION ==========\n")
+if (mean(Re(Zresp1_pos)) > mean(Re(Zresp2_pos))) {
+  cat("Patient 1 likely has COPD (higher resistance)\n")
+  cat("Patient 2 is likely healthy\n")
+} else {
+  cat("Patient 2 likely has COPD (higher resistance)\n")
+  cat("Patient 1 is likely healthy\n")
+}
+
+```
